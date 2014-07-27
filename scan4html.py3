@@ -5,6 +5,10 @@
 
 # file: 'scan4html.py3'
 """
+This is the "UNDO" branch- it is code to undo what has been done during
+development in the "MASTER" branch.
+
+
 Want to be able to traverse a directory tree and preform a substitution 
 of ".ogv" for any instance of ".mp4".
 
@@ -18,7 +22,7 @@ import sys
 
 # THE FOLLOWING TWO CONSTANTS MUST BE CHANGED:
 
-NEW_FILE_PREFIX = 'old_'  # DURING DEBUGGING ONLY 
+NEW_FILE_PREFIX = 'temp.'  # DURING DEBUGGING ONLY 
 # IN PRODUCTION ENVIRONMENT, CHANGE ABOVE TO EMPTY STRING.
 # NEXT CONSTANT SHOULD LIKELY BE SET TO RACHEL'S ROOT DIRECTORY.
 ROOT_DIR = "/home/alex/WWW"
@@ -34,9 +38,11 @@ def convert_text(text, old, new):
 for root, dirs, files in os.walk(ROOT_DIR):
     print("Traversing...")
     for f_name in files:
-        if f_name.endswith(FILE_NAME_SUFFIX):
+        if f_name.endswith(FILE_NAME_SUFFIX) and\
+                            f_name.endswith(FILE_NAME_SUFFIX):
             full_path = os.path.join(root, f_name)
-            print("  Found an html file.")
+            print("  Found a target file. Will delete:")
+            print("  {0}".format(
             with open(full_path) as f:
                 data = f.read()
                 replacement = convert_text(data, OLD, NEW)
