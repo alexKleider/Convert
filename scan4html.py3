@@ -16,16 +16,33 @@ print("Running Python3 script: 'scan4html.py3'.......")
 import os
 import sys
 
-# THE FOLLOWING TWO CONSTANTS MUST BE CHANGED:
+# Decide about MODE and TEST.
 
-NEW_FILE_PREFIX = 'old_'  # DURING DEBUGGING ONLY 
-# IN PRODUCTION ENVIRONMENT, CHANGE ABOVE TO EMPTY STRING.
-# NEXT CONSTANT SHOULD LIKELY BE SET TO RACHEL'S ROOT DIRECTORY.
-ROOT_DIR = "/home/alex/WWW"
+TEST = True
+#TEST = False
 
-OLD = '.mp4'
-NEW = '.ogv'
+MODE = "debug"
+#MODE = "production"
+
+if MODE == "production":
+    NEW_FILE_PREFIX = ''  #  IN PRODUCTION MODE 
+    ROOT_DIR = "/var/www"
+    OLD = '.mp4'
+    NEW = '.ogv'
+else:  # MODE == "debug"
+    NEW_FILE_PREFIX = 'modified_'  # DURING DEBUGGING
+    ROOT_DIR = "/home/alex/WWW"
+    OLD = '.JPG'
+    NEW = '.photo'
+
 FILE_NAME_SUFFIX = ".html"
+
+print(""" 
+###################################
+   #   Running in {0} mode.    #
+###################################
+""".format(MODE))
+
 
 def convert_text(text, old, new):
     if text.find(old) >=0:
@@ -36,19 +53,25 @@ for root, dirs, files in os.walk(ROOT_DIR):
     for f_name in files:
         if f_name.endswith(FILE_NAME_SUFFIX):
             full_path = os.path.join(root, f_name)
-            print("  Found an html file.")
+            print("  Found '{0}'.".format(full_path))
             with open(full_path) as f:
                 data = f.read()
                 replacement = convert_text(data, OLD, NEW)
-                print("    Check if conversion needed.")
             if replacement:
                 print("      {0}".format(full_path))
-                print("      .. converted and => media as:"
-                new_file_name = os.path.join(root, 
-                        (NEW_FILE_PREFIX + f_name)),
-                print("      {0}".format(new_file_name))
-                with open(new_file_name, 'w') as f:
-                    f.write(replacement)
+                print("      .. converted and => media as:")
+                new_file_name = NEW_FILE_PREFIX + f_name
+                final_path = os.path.join(root, new_file_name)
+                print(" ---     {0}".format(final_path))
+                if TEST:
+                    print\
+                    ("    .. we are in TEST mode- file not written!")
+                else:
+                    with open(final_path, 'w') as f:
+                        f.write(replacement)
+            else:
+                print("      .. no conversion necessary.")
+
 
 
 
