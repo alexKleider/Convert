@@ -31,31 +31,16 @@ OLD = '.mp4'
 NEW = '.ogv'
 FILE_NAME_SUFFIX = ".html"
 
-def convert_text(text, old, new):
-    if text.find(old) >=0:
-        return text.replace(old, new)
 
 for root, dirs, files in os.walk(ROOT_DIR):
     print("Traversing...")
     for f_name in files:
-        if f_name.endswith(FILE_NAME_SUFFIX) and\
+        if f_name.beginswith(NEW_FILE_PREFIX) and\
                             f_name.endswith(FILE_NAME_SUFFIX):
             full_path = os.path.join(root, f_name)
             print("  Found a target file. Will delete:")
-            print("  {0}".format(
-            with open(full_path) as f:
-                data = f.read()
-                replacement = convert_text(data, OLD, NEW)
-                print("    Check if conversion needed.")
-            if replacement:
-                print("      {0}".format(full_path))
-                print("      .. converted and => media as:"
-                new_file_name = os.path.join(root, 
-                        (NEW_FILE_PREFIX + f_name)),
-                print("      {0}".format(new_file_name))
-                with open(new_file_name, 'w') as f:
-                    f.write(replacement)
-
+            print("  {0}".format(full_path))
+            os.remove(full_path)
 
 
 
