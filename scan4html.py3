@@ -18,30 +18,51 @@ import sys
 
 # Decide about MODE and TEST.
 
-TEST = True
-#TEST = False
+#TEST = True
+TEST = False
 
 MODE = "debug"
 #MODE = "production"
 
 if MODE == "production":
     NEW_FILE_PREFIX = ''  #  IN PRODUCTION MODE 
-    ROOT_DIR = "/var/www"
+        # in production mode we don't rename, we replace.
+    ROOT_DIR = "/home/alex/Python/Conversion/WWW"
     OLD = '.mp4'
     NEW = '.ogv'
 else:  # MODE == "debug"
     NEW_FILE_PREFIX = 'modified_'  # DURING DEBUGGING
-    ROOT_DIR = "/home/alex/WWW"
+    ROOT_DIR = "/home/alex/Python/Conversion/WWW"
     OLD = '.JPG'
     NEW = '.photo'
 
 FILE_NAME_SUFFIX = ".html"
 
 print(""" 
-###################################
+#####################################
    #   Running in {0} mode.    #
-###################################
-""".format(MODE))
+   #   TEST is set to {1}.     #
+ROOT_DIR is set to {2}
+#####################################
+""".format(MODE, TEST, ROOT_DIR))
+print("""
+In debug mode we use '.JPG' and '.photo' as our
+test suffixes and rather than replacing files containing
+them, we add another file with its name prefixed 
+with 'modified_'.
+In production mode, we use '.mp4' and '.ogv',
+and file names are left unchanged.
+
+If test is True: files are not modified.  This allows us
+to test traversal without changing any files.
+"""
+
+response = input("Do you want to proceed? (y/n) ")
+if response in 'yY':
+    pass
+else:
+    print("Correct parameters and try again.")
+    sys.exit(1)
 
 
 def convert_text(text, old, new):
