@@ -3,15 +3,15 @@
 # vim: set fileencoding=utf-8 :
 # Copyright 2014 Alex Kleider; All Rights Reserved.
 
-# file: 'scan4html.py3'
+# file: 'scan4html.py'
 """
-Want to be able to traverse a directory tree and preform a substitution 
+Want to be able to traverse a directory tree and preform a substitution
 of ".ogv" for any instance of ".mp4".
 
-Sister procedure is convert2ogv.py3 
+Sister procedure is convert2ogv.py
 to scan for all '.mp4' files and convert them to '.ogv'.
 """
-print("Running Python3 script: 'scan4html.py3'.......")
+print("Running Python3 script: 'scan4html.py'.......")
 
 import os
 import sys
@@ -25,7 +25,7 @@ MODE = "debug"
 #MODE = "production"
 
 if MODE == "production":
-    NEW_FILE_PREFIX = ''  #  IN PRODUCTION MODE 
+    NEW_FILE_PREFIX = ''  #  IN PRODUCTION MODE
         # in production mode we don't rename, we replace.
     ROOT_DIR = "/home/alex/Python/Conversion/WWW"
     OLD = '.mp4'
@@ -38,7 +38,7 @@ else:  # MODE == "debug"
 
 FILE_NAME_SUFFIX = ".html"
 
-print(""" 
+print("""
 #####################################
    #   Running in {0} mode.    #
    #   TEST is set to {1}.     #
@@ -66,7 +66,8 @@ else:
 
 
 def convert_text(text, old, new):
-    if text.find(old) >=0:
+    """Replace 'old' text with 'new' text inside variable text"""
+    if text.find(old) >= 0:
         return text.replace(old, new)
 
 for root, dirs, files in os.walk(ROOT_DIR):
