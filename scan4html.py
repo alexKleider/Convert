@@ -4,14 +4,16 @@
 # Copyright 2014 Alex Kleider; All Rights Reserved.
 
 # file: 'scan4html.py'
-"""
+"""scan4html.py  - a Python 3 script:
 Want to be able to traverse a directory tree and preform a substitution
-of ".ogv" for any instance of ".mp4".
+of ".ogv" for any instance of ".mp4" (simple string substitution)
+found in any file with a name ending in ".html".
 
 Sister procedure is convert2ogv.py
 to scan for all '.mp4' files and convert them to '.ogv'.
 """
-print("Running Python3 script: 'scan4html.py'.......")
+print("Running ", sep='')
+print(__doc__)
 
 import os
 import sys

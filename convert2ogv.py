@@ -5,7 +5,7 @@
 
 # file: 'convert2ogv.py'
 """
-convert2ogv.py
+convert2ogv.py -  A Python 3 script
 to scan for all '.mp4' files and convert them to '.ogv'.
 
 !!!!!!!!!!!!        BE SURE TO SET ROOT_DIR        !!!!!!!!!!!
@@ -31,48 +31,52 @@ OLD_SUFFIX = '.mp4'
 NEW_SUFFIX = '.ogv'
 
 
-"""Main loop for command processing"""
+def main():
 
-command_line = "avconv -i {0}{1} -acodec libvorbis -q 0 {0}{2}"
+    """Main loop for command processing"""
 
-subprocess.call("date")
+    print(__doc__)
 
-response = input("""Root directory of files to be converted is set to..
-{0}
-OK to proceed? """.format(ROOT_DIR))
+    command_line = "avconv -i {0}{1} -acodec libvorbis -q 0 {0}{2}"
 
-if response[0] in 'yY':
-    pass
-else:
-    print("Change ROOT_DIR and re-run the script.")
-    sys.exit(1)
+    subprocess.call("date")
 
-n_files = 0
-n_conversions = 0
+    response = input("""Root directory of files to be converted is set to..
+    {0}
+    OK to proceed? """.format(ROOT_DIR))
 
-# pylint: disable=W0612
-for root, dirs, files in os.walk(ROOT_DIR):
-    #print("Traversing...")
-    for f_name in files:
-        n_files += 1
-        if f_name.endswith(OLD_SUFFIX):
-            n_conversions += 1
-            f_name_without_suffix = f_name[:-len(OLD_SUFFIX)]
-            full_path_without_suffix = \
-                            os.path.join(root, f_name_without_suffix)
-            print("  {0:>4}. {1}".format(n_conversions,
-                                         full_path_without_suffix))
+    if response[0] in 'yY':
+        pass
+    else:
+        print("Change ROOT_DIR and re-run the script.")
+        sys.exit(1)
 
-            args = shlex.split(command_line.\
-                format(full_path_without_suffix, OLD_SUFFIX, NEW_SUFFIX))
-            subprocess.call(args)
-            subprocess.call("date")
-            if DELETE_ORIGINALS:
-                os.remove('{0}{1}'\
-                        .format(full_path_without_suffix, OLD_SUFFIX))
+    n_files = 0
+    n_conversions = 0
+
+    # pylint: disable=W0612
+    for root, dirs, files in os.walk(ROOT_DIR):
+        #print("Traversing...")
+        for f_name in files:
+            n_files += 1
+            if f_name.endswith(OLD_SUFFIX):
+                n_conversions += 1
+                f_name_without_suffix = f_name[:-len(OLD_SUFFIX)]
+                full_path_without_suffix = \
+                                os.path.join(root, f_name_without_suffix)
+                print("  {0:>4}. {1}".format(n_conversions,
+                                             full_path_without_suffix))
+
+                args = shlex.split(command_line.\
+                    format(full_path_without_suffix, OLD_SUFFIX, NEW_SUFFIX))
+                subprocess.call(args)
+                subprocess.call("date")
+                if DELETE_ORIGINALS:
+                    os.remove('{0}{1}'\
+                            .format(full_path_without_suffix, OLD_SUFFIX))
 
 
 
-print("Files checked: {};  Files converted: {}.".\
-                                    format(n_files, n_conversions))
+    print("Files checked: {};  Files converted: {}.".\
+                                        format(n_files, n_conversions))
 
