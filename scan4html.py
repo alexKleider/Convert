@@ -55,7 +55,7 @@ and file names are left unchanged.
 
 If test is True: files are not modified.  This allows us
 to test traversal without changing any files.
-"""
+""")
 
 response = input("Do you want to proceed? (y/n) ")
 if response in 'yY':
