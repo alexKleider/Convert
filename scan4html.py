@@ -3,15 +3,15 @@
 # vim: set fileencoding=utf-8 :
 # Copyright 2014 Alex Kleider; All Rights Reserved.
 
-# file: 'scan4html.py3'
+# file: 'scan4html.py'
 """
 Want to be able to traverse a directory tree and preform a substitution 
 of ".ogv" for any instance of ".mp4".
 
-Sister procedure is convert2ogv.py3 
+Sister procedure is convert2ogv.py
 to scan for all '.mp4' files and convert them to '.ogv'.
 """
-print("Running Python3 script: 'scan4html.py3'.......")
+print("Running Python3 script: 'scan4html.py'.......")
 
 import os
 import sys

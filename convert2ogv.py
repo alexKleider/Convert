@@ -3,20 +3,20 @@
 # vim: set fileencoding=utf-8 :
 # Copyright 2014 Alex Kleider; All Rights Reserved.
 
-# file: 'convert2ogv.py3'
+# file: 'convert2ogv.py'
 """
-convert2ogv.py3 
+convert2ogv.py
 to scan for all '.mp4' files and convert them to '.ogv'.
 
 !!!!!!!!!!!!        BE SURE TO SET ROOT_DIR        !!!!!!!!!!!
 !!!  And decide if you want DELETE_ORIGINALS to be True or False. !!!
 
-Sister procedure is 'scan4html.py3'
+Sister procedure is 'scan4html.py'
 to traverse a directory tree and within any html file 
 preform a substitution of ".ogv" for any instance of ".mp4".
 """
 
-print("Running Python3 script: 'convert2ogv.py3'.......")
+print("Running Python3 script: 'convert2ogv.py'.......")
 
 import os
 import subprocess
