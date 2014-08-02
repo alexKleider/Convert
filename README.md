@@ -16,6 +16,6 @@ The motive is to allow access to users unable to play mp4 video; more
 specifically, to allow content to be accessible to the OLPC XO laptops.
 
 As of now, `mp42ogv.py` does not exist.
-Instead there is `convert2ogv.py3` which converts the ogv files to mp4
-and `scan4html.py3` which changes the link references.
+Instead there is `convert2ogv.py` which converts the ogv files to mp4
+and `scan4html.py` which changes the link references.
 

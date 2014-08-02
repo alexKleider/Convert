@@ -8,7 +8,7 @@
 Removes files with names ending in FILE_NAME_SUFFIX, 
 currently set to '.ogv'
 This is a utility which removes the ogv files created by 
-convert2ogv.py3, useful when testing so you can delete the files 
+convert2ogv.py, useful when testing so you can delete the files 
 created when testing (as long as you've done it 
 DELETE_ORIGINALS set to False.)
 """
