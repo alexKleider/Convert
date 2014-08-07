@@ -12,7 +12,7 @@ found in any file with a name ending in ".html".
 Sister procedure is convert2ogv.py
 to scan for all '.mp4' files and convert them to '.ogv'.
 """
-print("Running ", sep='')
+print("Running ", end='')
 print(__doc__)
 
 import os
