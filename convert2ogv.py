@@ -23,7 +23,7 @@ import subprocess
 import shlex
 import sys
 
-ROOT_DIR = "/home/alex/Python/Conversion/Test"
+ROOT_DIR = os.path.expanduser("~/Python/Conversion/Test")
 #DELETE_ORIGINALS = False
 DELETE_ORIGINALS = True
 
