@@ -62,21 +62,21 @@ def main():
             if f_name.endswith(OLD_SUFFIX):
                 n_conversions += 1
                 f_name_without_suffix = f_name[:-len(OLD_SUFFIX)]
-                full_path_without_suffix = \
-                                os.path.join(root, f_name_without_suffix)
+                full_path_without_suffix = os.path.join(root,
+                                                        f_name_without_suffix)
                 print("  {0:>4}. {1}".format(n_conversions,
                                              full_path_without_suffix))
 
-                args = shlex.split(command_line.\
-                    format(full_path_without_suffix, OLD_SUFFIX, NEW_SUFFIX))
+                args = shlex.split(command_line.format(full_path_without_suffix,
+                                                       OLD_SUFFIX,
+                                                       NEW_SUFFIX))
                 subprocess.call(args)
                 subprocess.call("date")
                 if DELETE_ORIGINALS:
                     os.remove('{0}{1}'\
                             .format(full_path_without_suffix, OLD_SUFFIX))
 
+    print("Files checked: {};  Files converted: {}.".format(n_files,
+                                                            n_conversions))
 
-
-    print("Files checked: {};  Files converted: {}.".\
-                                        format(n_files, n_conversions))
 
