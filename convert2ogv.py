@@ -16,7 +16,6 @@ to traverse a directory tree and within any html file
 preform a substitution of ".ogv" for any instance of ".mp4".
 """
 
-print("Running Python3 script: 'convert2ogv.py'.......")
 
 import os
 import subprocess
@@ -35,6 +34,7 @@ def main():
 
     """Main loop for command processing"""
 
+    print("Running Python3 script: 'convert2ogv.py'.......")
     print(__doc__)
 
     command_line = "avconv -i {0}{1} -acodec libvorbis -q 0 {0}{2}"
