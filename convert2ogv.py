@@ -80,3 +80,5 @@ def main():
                                                             n_conversions))
 
 
+if __name__ == "__main__":
+    main()
