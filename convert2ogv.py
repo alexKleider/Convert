@@ -16,14 +16,13 @@ to traverse a directory tree and within any html file
 preform a substitution of ".ogv" for any instance of ".mp4".
 """
 
-print("Running Python3 script: 'convert2ogv.py'.......")
 
 import os
 import subprocess
 import shlex
 import sys
 
-ROOT_DIR = "/home/alex/Python/Conversion/Test"
+ROOT_DIR = os.path.expanduser("~/Python/Conversion/Test")
 #DELETE_ORIGINALS = False
 DELETE_ORIGINALS = True
 
@@ -35,6 +34,7 @@ def main():
 
     """Main loop for command processing"""
 
+    print("Running Python3 script: 'convert2ogv.py'.......")
     print(__doc__)
 
     command_line = "avconv -i {0}{1} -acodec libvorbis -q 0 {0}{2}"
@@ -62,21 +62,23 @@ def main():
             if f_name.endswith(OLD_SUFFIX):
                 n_conversions += 1
                 f_name_without_suffix = f_name[:-len(OLD_SUFFIX)]
-                full_path_without_suffix = \
-                                os.path.join(root, f_name_without_suffix)
+                full_path_without_suffix = os.path.join(root,
+                                                        f_name_without_suffix)
                 print("  {0:>4}. {1}".format(n_conversions,
                                              full_path_without_suffix))
 
-                args = shlex.split(command_line.\
-                    format(full_path_without_suffix, OLD_SUFFIX, NEW_SUFFIX))
+                args = shlex.split(command_line.format(full_path_without_suffix,
+                                                       OLD_SUFFIX,
+                                                       NEW_SUFFIX))
                 subprocess.call(args)
                 subprocess.call("date")
                 if DELETE_ORIGINALS:
                     os.remove('{0}{1}'\
                             .format(full_path_without_suffix, OLD_SUFFIX))
 
+    print("Files checked: {};  Files converted: {}.".format(n_files,
+                                                            n_conversions))
 
 
-    print("Files checked: {};  Files converted: {}.".\
-                                        format(n_files, n_conversions))
-
+if __name__ == "__main__":
+    main()
