@@ -29,6 +29,26 @@ DELETE_ORIGINALS = True
 OLD_SUFFIX = '.mp4'
 NEW_SUFFIX = '.ogv'
 
+def convert_file(root, f_name, n_conversions):
+    """Convert file from .mp4 to .ogv"""
+
+    f_name_without_suffix = f_name[:-len(OLD_SUFFIX)]
+    full_path_without_suffix = os.path.join(root,
+                                            f_name_without_suffix)
+    print("  {0:>4}. {1}".format(n_conversions,
+                                 full_path_without_suffix))
+
+    command_line = "avconv -i {0}{1} -acodec libvorbis -q 0 {0}{2}"
+    args = shlex.split(command_line.format(full_path_without_suffix,
+                                           OLD_SUFFIX,
+                                           NEW_SUFFIX))
+    subprocess.call(args)
+    subprocess.call("date")
+    if DELETE_ORIGINALS:
+        # WARNING! You will remove this file even if the command to
+        #          translate was not successful
+        os.remove('{0}{1}' .format(full_path_without_suffix,
+                                   OLD_SUFFIX))
 
 def main():
 
@@ -36,8 +56,6 @@ def main():
 
     print("Running Python3 script: 'convert2ogv.py'.......")
     print(__doc__)
-
-    command_line = "avconv -i {0}{1} -acodec libvorbis -q 0 {0}{2}"
 
     subprocess.call("date")
 
@@ -56,25 +74,12 @@ def main():
 
     # pylint: disable=W0612
     for root, dirs, files in os.walk(ROOT_DIR):
-        #print("Traversing...")
         for f_name in files:
+            # WARNING: You are counting directories too
             n_files += 1
             if f_name.endswith(OLD_SUFFIX):
                 n_conversions += 1
-                f_name_without_suffix = f_name[:-len(OLD_SUFFIX)]
-                full_path_without_suffix = os.path.join(root,
-                                                        f_name_without_suffix)
-                print("  {0:>4}. {1}".format(n_conversions,
-                                             full_path_without_suffix))
-
-                args = shlex.split(command_line.format(full_path_without_suffix,
-                                                       OLD_SUFFIX,
-                                                       NEW_SUFFIX))
-                subprocess.call(args)
-                subprocess.call("date")
-                if DELETE_ORIGINALS:
-                    os.remove('{0}{1}'\
-                            .format(full_path_without_suffix, OLD_SUFFIX))
+                convert_file(root, f_name, n_conversions)
 
     print("Files checked: {};  Files converted: {}.".format(n_files,
                                                             n_conversions))
