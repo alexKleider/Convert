@@ -16,13 +16,20 @@ print("Running Python3 script: 'rmogv.py'.......")
 
 import os
 
-ROOT_DIR = "/home/alex/Python/Conversion/Test"
+ROOT_DIR = "/home/alex/Python/Conversion/Mp4"
 FILE_NAME_SUFFIX = '.ogv'
 
-for root, dirs, files in os.walk(ROOT_DIR):
-    print("Traversing {0}".format(root))
-    for f_name in files:
-        if f_name.endswith(FILE_NAME_SUFFIX):
+response = input("""##########################
+We are about to remove all files ending in {}
+In and beneath the directory {}.
+Are you sure you want to proceed? (y/n) """.format(FILE_NAME_SUFFIX,
+                                                    ROOT_DIR))
+
+if response and response[0] in "yY":
+    for root, dirs, files in os.walk(ROOT_DIR):
+        print("Traversing {0}".format(root))
+        for f_name in files:
             full_path = os.path.join(root, f_name)
-            print("Deleting {0}".format(full_path))
-            os.remove(full_path)
+            if os.path.isfile(full_path) and full_path.endswith(FILE_NAME_SUFFIX):
+                os.remove(full_path)
+
