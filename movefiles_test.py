@@ -17,7 +17,7 @@ import mod_copy
 class test_filemoving(unittest.TestCase):
     """Test mod_copy.move_files."""
 
-    def setup(self):
+    def setUp(self):
         pass
 
     def test_virgin_system(self):
@@ -35,7 +35,7 @@ class test_filemoving(unittest.TestCase):
         mod_copy.move_files('DirTree', 'Tree0')
 #       shutil.rmtree('Tree0')
 
-    def teardown():
+    def tearDown():
         pass
 
 if __name__ == "__main__":
