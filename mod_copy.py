@@ -16,6 +16,9 @@ be checked for each file to be copied over and if the file already exists,
 nothing will be done with regard to that file.  This means that if the
 script is ever interupted before completion, rerunning the script will not
 waste resources doing what's already been done before.
+The LOGGING_FILE keeps track of what's been done.
+If the script aborts for what ever reason no summary statement will be
+appended to LOGGING_FILE so STATUS_FILE is provided. 
 """
 import os
 import sys
@@ -30,10 +33,16 @@ NEW_ROOT_DIR = "/media/Modified/Rachel_www"
 ROOT_DIR = os.path.abspath(os.path.expanduser(ROOT_DIR))
 NEW_ROOT_DIR = os.path.abspath(os.path.expanduser(NEW_ROOT_DIR))
 LOGGING_FILE = "log.log"
+STATUS_FILE = "status.log"
 OLD_SUFFIX = '.mp4'
 NEW_SUFFIX = '.ogv'
 HTML_SUFFIX = '.html'
-COMMAND_LINE = "avconv -flags qscale -global_quality 1 -i {0} -acodec libvorbis  {1}"
+COMMAND_LINE =\
+    "avconv -flags qscale -global_quality 1 -i {0} -acodec libvorbis  {1}"
+SUMMARY = """---------------------
+Completed with {files_checked} files checked,
+        {video} video conversions ({failures} failed,)
+    and {html} html conversions."""
 
 def log(entry):
     """Logs entry to LOGGING_FILE."""
@@ -51,7 +60,7 @@ def convert_file(source, destination):
     return_code = subprocess.call(args)
     if return_code:
         log("{}: {} => return code >0."\
-                                .format(datetime.datetime.now()[:24], source))
+                            .format(datetime.datetime.now()[:24], source))
     return return_code
 
 
@@ -77,7 +86,8 @@ def modify_file(source, destination):
                                 OLD_SUFFIX,
                                 NEW_SUFFIX)
     if content:
-        with open(destination, 'w', encoding="latin-1") as destination_file:
+        with open(destination, 'w', 
+                    encoding="latin-1") as destination_file:
             destination_file.write(content)
         ret = True
     else:
@@ -92,8 +102,8 @@ def move_files(old_dir, new_dir):
     old_dir must already exit, new_dir need not.
     mp4 files will be converted to ogv;
     html files will be checked for refs and corrected as need be.
-    If destination files are already present, they will NOT be overwritten:
-    processing simply doesn't take place.
+    If destination files are already present, they will NOT be 
+    overwritten: processing simply doesn't take place.
     If ogv files are found on the input side, this
     will be logged and a notification sent to stdout.
     Depends on log function.
@@ -104,7 +114,13 @@ def move_files(old_dir, new_dir):
     n_html_files_converted = 0
     log("""
 ####   Beginning new instance of mod_copy.py {}"""\
-                                    .format(str(datetime.datetime.now())[:19]))
+                            .format(str(datetime.datetime.now())[:19]))
+    with (open(STATUS_FILE, "w")) as f:
+        f.write(SUMMARY.format(files_checked = n_files_processed,
+                                video = n_video_file_conversion_attempts,
+                                failures = n_failed_video_conversions,
+                                html = n_html_files_converted)
+        )
     for root, _, files in os.walk(old_dir):
         working_destination = \
         os.path.abspath(root).replace(os.path.abspath(old_dir),
@@ -125,11 +141,13 @@ def move_files(old_dir, new_dir):
             if source.endswith(OLD_SUFFIX):
                 destination = destination.replace(OLD_SUFFIX, NEW_SUFFIX)
                 if os.path.isfile(destination):
-                    log("{}: {} $".format(str(datetime.datetime.now())[:19],
+                    log("{}: {} $".\
+                                format(str(datetime.datetime.now())[:19],
                                                 destination))
                     continue
                 return_code = convert_file(source, destination)
-                log("{}: {} => ogv".format(str(datetime.datetime.now())[:19], source))
+                log("{}: {} => ogv".\
+                        format(str(datetime.datetime.now())[:19], source))
                 n_video_file_conversion_attempts += 1
                 if return_code:
                     print("!!!!!!!!!Return_code is {}.".\
@@ -137,33 +155,37 @@ def move_files(old_dir, new_dir):
                     n_failed_video_conversions += 1
                     continue
             elif source.endswith(HTML_SUFFIX):
-                htm_modified = modify_file(source, destination)
+                html_modified = modify_file(source, destination)
                 if html_modified == None:
-                    log("{}: {} $".format(str(datetime.datetime.now())[:19], source))
+                    log("{}: {} $".\
+                        format(str(datetime.datetime.now())[:19], source))
                     continue
                 if html_modified:
-                    log("{}: {} +".format(str(datetime.datetime.now())[:19], source))
+                    log("{}: {} +"\
+                        .format(str(datetime.datetime.now())[:19], source))
                     n_html_files_converted += 1
                 else:
-                    log("{}: {} -".format(str(datetime.datetime.now())[:19], source))
+                    log("{}: {} -"\
+                        .format(str(datetime.datetime.now())[:19], source))
             else:
                 if os.path.isfile(destination):  # I don't think this
                                                 # should ever happen!!
-                    log("{}: {} !!".format(str(datetime.datetime.now())[:19],
+                    log("{}: {} !!".\
+                        format(str(datetime.datetime.now())[:19],
                                                 destination))
                     continue
 
                 if os.path.islink(destination):
                     continue
-                shutil.copyfile(source, destination, follow_symlinks=False) 
-                log("{}: {} -".format(str(datetime.datetime.now())[:19], source))
+                shutil.copyfile(source, 
+                                destination, follow_symlinks=False)
+                log("{}: {} -"\
+                    .format(str(datetime.datetime.now())[:19], source))
             shutil.copymode(source, destination, follow_symlinks=False) 
-    log("""------------------
-Completed with {files_checked} files checked, {video} video conversions ({failures} failed,) and {html} html conversions."""\
-    .format(files_checked = n_files_processed, 
-            video = n_video_file_conversion_attempts, 
-            failures = n_failed_video_conversions, 
-            html = n_html_files_converted))
+    log(SUMMARY .format(files_checked = n_files_processed, 
+                        video = n_video_file_conversion_attempts, 
+                        failures = n_failed_video_conversions, 
+                        html = n_html_files_converted))
 
 def main():
     """Get user confirmation before calling move_files."""
