@@ -1,5 +1,10 @@
 #mp42ogv
 
+Current work (as of Feb 2014) has been to convert code to use docopt
+and to support conversion to webm as well as ogv.
+Now completed is convert_mp4.py (a rename of convert2ogv.py.)
+
+
 As of early Sept 2014, both modules have been combined into mod_copy.py.
 
 Declared within the code are two directories: one exists- the source,
