@@ -1,102 +1,81 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # vim: set fileencoding=utf-8 :
-# Copyright 2014 Alex Kleider; All Rights Reserved.
+# Copyright 2014, 2015 Alex Kleider; All Rights Reserved.
 
 # file: 'scan4html.py'
-"""scan4html.py  - a Python 3 script:
-Want to be able to traverse a directory tree and preform a substitution
-of ".ogv" for any instance of ".mp4" (simple string substitution)
-found in any file with a name ending in ".html".
-
-Sister procedure is convert2ogv.py
-to scan for all '.mp4' files and convert them to '.ogv'.
 """
-print("Running ", end='')
-print(__doc__)
+scan4html.py 
+
+Usage:
+    scan4html.py -h | --version
+    scan4html.py  [-d] [-i DIRECTORY] [-f FORMAT]
+
+Options:
+  -h --help        Print this docstring.
+  --version        Provide version information.
+  -d --debug   Provide debugging statements.
+  -i DIRECTORY --input=DIRECTORY   Directory under which the html files
+                                    are to be found. [Default: ./]
+  -f FORMAT --format=FORMAT   Format desired. Currently only ogv and 
+                                webm are supported.  [Default: webm]
+
+This script traverses the given DIRECTORY (or current working directory
+if none is provided) and examines all files named with the '.html'
+suffix.  Within the text of each such file, any file name with the suffix
+'.mp4' is changed to have the suffix appropriate to the FORMAT argument
+(default is 'webm' if none is provided.)  The only two formats currently
+supported are webm and ogv.
+
+Sister procedure is 'convert_mp4.py' which traverses a directory tree
+and converts all mp4 files into the FORMAT specified (defaults to webm.)
+The only two formats currently supported are webm and ogv.
+"""
 
 import os
 import sys
+from docopt import docopt
 
-# Decide about MODE and TEST.
 
-#TEST = True
-TEST = False
-
-MODE = "debug"
-#MODE = "production"
-
-if MODE == "production":
-    NEW_FILE_PREFIX = ''  #  IN PRODUCTION MODE
-        # in production mode we don't rename, we replace.
-    ROOT_DIR = "/home/alex/Python/Conversion/WWW"
-    OLD = '.mp4'
-    NEW = '.ogv'
-else:  # MODE == "debug"
-    NEW_FILE_PREFIX = 'modified_'  # DURING DEBUGGING
-    ROOT_DIR = "/home/alex/Python/Conversion/WWW"
-    OLD = '.JPG'
-    NEW = '.photo'
-
+VERSION = "v0.1.0"
 FILE_NAME_SUFFIX = ".html"
+OLD_SUFFIX = '.mp4'
 
-print("""
-#####################################
-   #   Running in {0} mode.    #
-   #   TEST is set to {1}.     #
-ROOT_DIR is set to {2}
-#####################################
-""".format(MODE, TEST, ROOT_DIR))
-print("""
-In debug mode we use '.JPG' and '.photo' as our
-test suffixes and rather than replacing files containing
-them, we add another file with its name prefixed 
-with 'modified_'.
-In production mode, we use '.mp4' and '.ogv',
-and file names are left unchanged.
-
-If test is True: files are not modified.  This allows us
-to test traversal without changing any files.
-""")
-
-response = input("Do you want to proceed? (y/n) ")
+args = docopt(__doc__, version=VERSION)
+if args['--debug']:
+    print(args)
+    response = input("Do you want to proceed? (y/n) ")
 if response in 'yY':
     pass
 else:
     print("Correct parameters and try again.")
     sys.exit(1)
-
+if not args['--format'] in ('ogv', 'webm'):
+    print("Unsupported format given.")
+    sys.exit(1)
+else:
+    NEW_SUFFIX = '.{}'.format(args['--format'])
 
 def convert_text(text, old, new):
     """Replace 'old' text with 'new' text inside variable text"""
     if text.find(old) >= 0:
         return text.replace(old, new)
 
-for root, dirs, files in os.walk(ROOT_DIR):
-    print("Traversing...")
+for root, _, files in os.walk(args['--input']):
+    if args['--debug']:
+        print("Traversing {}".format(root))
     for f_name in files:
         if f_name.endswith(FILE_NAME_SUFFIX):
             full_path = os.path.join(root, f_name)
-            print("  Found '{0}'.".format(full_path))
             with open(full_path) as f:
                 data = f.read()
-                replacement = convert_text(data, OLD, NEW)
+                replacement = convert_text(data, OLD_SUFFIX, NEW_SUFFIX)
             if replacement:
-                print("      {0}".format(full_path))
-                print("      .. converted and => media as:")
-                new_file_name = NEW_FILE_PREFIX + f_name
-                final_path = os.path.join(root, new_file_name)
-                print(" ---     {0}".format(final_path))
-                if TEST:
-                    print\
-                    ("    .. we are in TEST mode- file not written!")
-                else:
-                    with open(final_path, 'w') as f:
-                        f.write(replacement)
+                if args['--debug']:
+                    print("Converted: {}".format(full_path))
+                with open(full_path, 'w') as f:
+                    f.write(replacement)
             else:
-                print("      .. no conversion necessary.")
-
-
-
-
+                if args['--debug']:
+                    print("No change: {}".format(full_path))
 

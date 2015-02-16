@@ -1,14 +1,20 @@
-#mp42ogv
+#Convert
 
 Current work (as of Feb 2014) has been to convert code to use docopt
 and to support conversion to webm as well as ogv.
-Now completed is convert_mp4.py (a rename of convert2ogv.py.)
+Already completed is convert_mp4.py (a rename of convert2ogv.py.)
+and scan4html.py
 
 
-As of early Sept 2014, both modules have been combined into mod_copy.py.
+In early Sept 2014, both modules (convert2ogv.py and scan4html.py) were
+combined into mod_copy.py.  The former two have been 'upgraded' to
+support command line arguments (with docopt) rather than having them
+hard coded. The same has yet to be done for mod_copy.  Until this is 
+done, the following documentation applies:
 
-Declared within the code are two directories: one exists- the source,
-the other will be created- the destination.
+
+Declared within the code (of mod_copy) are two directories: one exists-
+the source, the other will be created- the destination.
 
 All files with names ending in '.html' will be examined for occurances of 
 the string'mp4' and any found will be changed to 'ogv'.
@@ -19,22 +25,22 @@ to the destination directory.
 Each action is logged to a file called 'log.log'.
 
 This project was motivated by the following:
-At the June meeting of olpcSF.org, Bruce Baike introduced us to 
-Rachel [1]. Rachel is a content server running on a Raspberry Pi [2] 
+At the June (or was it May?) meeting of olpcSF.org, Bruce Baike introduced
+us to Rachel [1]. Rachel is a content server running on a Raspberry Pi [2] 
 with a 32 GB SD card.  Amongst other things, it provides many if not all of
 the Khan videos but unfortunately they are all provided in mp4 format which
 the OLPC XO laptop can not play.
 
-Our soon to be executed plan is to run this script against the /var/www 
-directory found on the second partition of Rachel's SD card.  Once this is
-done and we know that we'll need a much higher capacity SD card since the
-ogv files are much bigger.  We are hoping a 64 GB card will be sufficient.
-Stay tuned.
+Running these scripts against the /var/www directory found on the second
+partition of Rachel's SD card makes Rachel useful to XO laptop clients.
+It's recognized that we'll probably need a higher capacity SD card since the
+converted files are likely to be considerably bigger.  A 64 GB card
+should do the trick. Stay tuned.
 
 
 For historical reasons, the text of the original README file follows:
 """
-These utilities accepts a directory tree, beneath which there are assumed 
+These utilities accept a directory tree, beneath which there are assumed 
 to be html and mp4 files with the latter being referenced in the former.
 
 All references to files with names ending with '.mp4' contained in files
