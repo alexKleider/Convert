@@ -158,8 +158,7 @@ def convert_video(source, destination, args):
         log(message, args)
         report(message, args)
     else:
-        shutil.copyfile(source, 
-                        destination, follow_symlinks=False)
+        shutil.copymode(source, destination, follow_symlinks=False)
     return return_code
 
 def convert_text(text, old, new):
