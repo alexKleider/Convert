@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # vim: set fileencoding=utf-8 :
-# Copyright 2014 Alex Kleider; All Rights Reserved.
+# Copyright 2014, 2015 Alex Kleider; All Rights Reserved.
 
 # file: 'convert_mp4.py'  A Python 3 script
 """
@@ -37,13 +37,12 @@ import shlex
 import sys
 import datetime
 from docopt import docopt
-
-VERSION = "v0.1.0"
+import spot
 
 OLD_SUFFIX = '.mp4'
 
 def get_args():
-    args = docopt(__doc__, version=VERSION)
+    args = docopt(__doc__, version=spot.VERSION)
     args['--input'] = os.path.abspath(os.path.expanduser(args['--input']))
     if args['--format'] == 'ogv':
         args['COMMAND_LINE'] =(
