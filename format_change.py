@@ -150,8 +150,12 @@ def convert_video(source, destination, args):
     This depends on the log function.
     """
     
-    return_code = subprocess.call(shlex.split(
-            args['command'].format(source, destination)))
+    command_line = shlex.split(args['command']
+                            .format(source, destination))
+    debug("""Command line being called is:
+    {}""".format(" ".join(command_line)),
+        args)
+    return_code = subprocess.call(command_line)
     if return_code:
         message = ("{}: {} => return code >0."
                     .format(datetime.datetime.now()[:24], source))
@@ -159,6 +163,7 @@ def convert_video(source, destination, args):
         report(message, args)
     else:
         shutil.copymode(source, destination, follow_symlinks=False)
+#       shutil.copymode(source, destination)
     return return_code
 
 def convert_text(text, old, new):
@@ -184,17 +189,18 @@ def modify_html(source, destination, args):
     """
     if not args['--in_place'] and os.path.isfile(destination):
         return   # returns None vs True or False
-#   with open(source, 'r', encoding="latin-1") as source_file:
-    with open(source, 'r') as source_file:
+    with open(source, 'r', encoding="latin-1") as source_file:
+#   with open(source, 'r') as source_file:
         content = convert_text(source_file.read(), 
                                 args['old_suffix'],
                                 args['new_suffix'],)
     if content:
-#       with open(destination, 'w', 
-#                   encoding="latin-1") as destination_file:
-        with open(destination, 'w') as destination_file:
+        with open(destination, 'w', 
+                    encoding="latin-1") as destination_file:
+#       with open(destination, 'w') as destination_file:
             destination_file.write(content)
         shutil.copymode(source, destination, follow_symlinks=False)
+#       shutil.copymode(source, destination)
         return True
     else:
         return False
@@ -239,6 +245,7 @@ Completed with {n_files} files checked:
             debug("  Having to create {}".format(dest_dir), args)
             os.mkdir(dest_dir)
             shutil.copymode(source_dir, dest_dir, follow_symlinks=False)
+#           shutil.copymode(source_dir, dest_dir)
         for file_name in files:
             source = os.path.abspath(os.path.join(root, file_name))
             destination = os.path.abspath(
@@ -274,9 +281,11 @@ Completed with {n_files} files checked:
                                                 destination), args)
                     continue  
                 return_code = convert_video(source, destination, args)
-                log("{}: {} => new format"
+                log("{}: {} => {}"
                         .format(str(datetime.datetime.now())[:19],
-                                source), args)
+                                source,
+                                args['--format']),
+                    args)
                 if return_code:
                     message = ("!!!!!!!!!Return_code is {}."
                                         .format(return_code))
@@ -286,9 +295,11 @@ Completed with {n_files} files checked:
                     continue
 
             elif not args['--in_place']: 
-                debug("      which needs to be moved over.", args)
-                shutil.copyfile(source, 
-                                destination, follow_symlinks=False)
+                if not (os.path.isfile(destination)  # [1]
+                  or os.path.islink(destination)):
+                    shutil.copyfile(source, 
+                                    destination,
+                                    follow_symlinks=False)
             else:
                 debug("      which we'll leave as is.",args)
 
@@ -336,13 +347,16 @@ if __name__ == "__main__":
     args = get_args()
     main(args)
 
+# [1]
 some_notes = """
 There are some problems that arise when dealing with links- in this case
 symbolic links.
 os.path.isfile(<symlink>) reports on the existence of the target, not the
-link itself.  In my use case, it was reporting false even thought the link
-was present and needed. The target was not present (in a part of the
-directory tree outside the directory under consideration.)
+link itself so if it's a broken link, False will be returned.  In my use
+case, it was necessary to add the 'or' and check os.path.islink to avoid
+the copyfile raising a file already exists error.
+The link appeared broken because it was pointing to a part of the file
+system outside of the directories being considered.
 os.path.islink(<symlink>) reports what is needed in this situation.
 shutil.copy(<symlink>) copies the target of the link, not the link itself.
 shutil.copy(<symlink>, follow_symlinks=False) changes the behavior to copy
