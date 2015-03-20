@@ -44,24 +44,11 @@ If not specified, FORMAT defaults to webm.
 format_change.py combines the functionality of both convert_mp4.py and
 scan4html.py into one script.  It supports preservation of the original
 directory, not provided in the other two scripts.
+
+Recently added functionality which provides converson times
+and comparison of file size before and after conversion.
 """
 
-"""
-Provided as constants in the code are:
-1. name of an existing directory assumed to contain mp4 files beneath it.
-2. name of another possibly non-existent destination directory. 
-Everything under directory 1 will be moved to directory 2,
-in the process changing any mp4 files into ogv format, and
-changing the text of html files in order that links are not broken.
-If the destinatioin directory already exists, it's content will
-be checked for each file to be copied over and if the file already exists,
-nothing will be done with regard to that file.  This means that if the
-script is ever interupted before completion, rerunning the script will not
-waste resources doing what's already been done before.
-The LOGGING_FILE keeps track of what's been done.
-If the script aborts for what ever reason no summary statement will be
-appended to LOGGING_FILE so STATUS_FILE is provided. 
-"""
 import os
 import sys
 import shlex
@@ -225,17 +212,28 @@ def traverse_and_change(args):
     """
     final_report = ("""
 Completed with {n_files} files checked:
-    {n_video} video conversions, of which {n_failed} failed.
-    {n_html} html files encountered, {n_changed} required changing.""")
+    Attempted {n_video} video conversions, {n_failed} failed.
+    {n_html} html files encountered, {n_changed} required changing.
+    Time to convert {n_converted_videos} videos: {time_taken}.
+    Total of sizes of all input video files: {mp4_size}
+                  of all output video files: {new_format_size}
+    for an average time per file: {time_per_file}
+     time per megabite of source: {time_per_meg}.
+    Extra disk space required: {size_diff}, {percent_diff}%.""")
 
     n_files = 0     # $ destination already existed.
     n_video = 0     # + modified.
     n_failed = 0    # - no need for modification.
+    time_taken = datetime.timedelta(0, 0, 0)
+    mp4_size = 0
+    new_format_size = 0
     n_html = 0
     n_changed = 0
 
     for root, _, files in os.walk(args['--input']):
-        debug("Traversing {}".format(root), args)
+        message = "Traversing {}".format(root)
+        debug(message, args)
+        log(message, args)
         source_dir = os.path.abspath(root)
         dest_dir = (source_dir
                     .replace(os.path.abspath(args['--input']),
@@ -259,31 +257,36 @@ Completed with {n_files} files checked:
                 if html_modified == None:  # source != dest & dest exists.
                     log("{}: {} $"
                         .format(str(datetime.datetime.now())[:19],
-                                source), args)
+                                file_name), args)
                 elif html_modified:
                     log("{}: {} +"
                         .format(str(datetime.datetime.now())[:19],
-                                source), args)
+                                file_name), args)
                     n_changed += 1
                 else:
                     log("{}: {} -"
                         .format(str(datetime.datetime.now())[:19],
-                                source), args)
+                                file_name), args)
             elif source.endswith(args['old_suffix']):
                 debug("      which is a video file.", args)
                 n_video += 1
+                dest_file = file_name.replace(
+                                    args['old_suffix'],
+                                    args['new_suffix'])
                 destination = destination.replace(
                                     args['old_suffix'],
                                     args['new_suffix'])
                 if os.path.isfile(destination):  # Already converted.
                     log("{}: {} $".\
                                 format(str(datetime.datetime.now())[:19],
-                                                destination), args)
+                                                dest_file), args)
                     continue  
+                begin_conversion = datetime.datetime.now()
                 return_code = convert_video(source, destination, args)
+                end_conversion = datetime.datetime.now()
                 log("{}: {} => {}"
                         .format(str(datetime.datetime.now())[:19],
-                                source,
+                                file_name,
                                 args['--format']),
                     args)
                 if return_code:
@@ -293,6 +296,10 @@ Completed with {n_files} files checked:
                     log(message, args)
                     n_failed += 1
                     continue
+                else:
+                    time_taken += end_conversion - begin_conversion
+                    mp4_size += os.stat(source).st_size
+                    new_format_size += os.stat(destination).st_size
 
             elif not args['--in_place']: 
                 if not (os.path.isfile(destination)  # [1]
@@ -303,11 +310,25 @@ Completed with {n_files} files checked:
             else:
                 debug("      which we'll leave as is.",args)
 
+
+    time_per_file = time_taken / n_converted_videos
+    time_per_meg = time_taken / (mp4_size / 1000000)
+    size_diff = new_format_size - mp4_size
+    percent_diff = size_dif / mp4_size * 100
+
     return final_report.format(n_files = n_files, 
                             n_video = n_video, 
                             n_failed = n_failed, 
                             n_html = n_html,
-                            n_changed = n_changed
+                            n_changed = n_changed,
+                            n_converted_videos = (n_video - n_failed),
+                            time_taken = time_taken,
+                            mp4_size = mp4_size,
+                            new_format_size = new_format_size,
+                            time_per_file = time_per_file,
+                            time_per_megabyte = time_per_megabyte,
+                            size_diff = size_diff,
+                            percent_diff = percent_diff
                             )
 
 def main(args):
