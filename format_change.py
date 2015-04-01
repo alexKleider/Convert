@@ -59,6 +59,7 @@ from docopt import docopt
 import spot
 
 OLD_SUFFIX = '.mp4'
+ENCODING = "latin-1"
 
 def get_args():
     """Sets and returns globals (as a dictionary.)
@@ -170,27 +171,26 @@ def modify_html(source, destination, args):
     Changes each instance of '.mp4' in source to the suffix appropriate
     to args['--format'] in destination.
     Returns True if modifications were necessary, False if not.
-    Does nothing (and returns None) if destination already exists
-    but is not the same as source.  This is to prevent doing work that
-    was already done (presumably because of an earlier run.)
+    If modifications are not necessary, still moves source to
+    destination.
     """
-    if not args['--in_place'] and os.path.isfile(destination):
-        return   # returns None vs True or False
-    with open(source, 'r', encoding="latin-1") as source_file:
-#   with open(source, 'r') as source_file:
-        content = convert_text(source_file.read(), 
+    with open(source, 'r', encoding=ENCODING) as source_file:
+        file_content = source_file.read()
+        content = convert_text(file_content, 
                                 args['old_suffix'],
                                 args['new_suffix'],)
     if content:
         with open(destination, 'w', 
-                    encoding="latin-1") as destination_file:
-#       with open(destination, 'w') as destination_file:
+                    encoding=ENCODING) as destination_file:
             destination_file.write(content)
         shutil.copymode(source, destination, follow_symlinks=False)
-#       shutil.copymode(source, destination)
         return True
-    else:
-        return False
+    else:  # file doesn't require changes.
+        if args['--in_place'] or os.path.isfile(destination):
+            return   # returns None vs True or False
+        else:  # Unchanged file needs to be moved over.
+            shutil.copy2(source, destination) 
+            return False
         
 def traverse_and_change(args):
     """Convert all files found in args['--input']
@@ -212,7 +212,7 @@ def traverse_and_change(args):
     """
     final_report = ("""
 Completed with {n_files} files checked:
-    Attempted {n_video} video conversions, {n_failed} failed.
+    Attempted {n_videos} video conversions, {n_failed} failed.
     {n_html} html files encountered, {n_changed} required changing.
     Time to convert {n_converted_videos} videos: {time_taken}.
     Total of sizes of all input video files: {mp4_size}
@@ -222,7 +222,7 @@ Completed with {n_files} files checked:
     Extra disk space required: {size_diff}, {percent_diff}%.""")
 
     n_files = 0     # $ destination already existed.
-    n_video = 0     # + modified.
+    n_videos = 0     # + modified.
     n_failed = 0    # - no need for modification.
     time_taken = datetime.timedelta(0, 0, 0)
     mp4_size = 0
@@ -269,7 +269,7 @@ Completed with {n_files} files checked:
                                 file_name), args)
             elif source.endswith(args['old_suffix']):
                 debug("      which is a video file.", args)
-                n_video += 1
+                n_videos += 1
                 dest_file = file_name.replace(
                                     args['old_suffix'],
                                     args['new_suffix'])
@@ -311,22 +311,23 @@ Completed with {n_files} files checked:
                 debug("      which we'll leave as is.",args)
 
 
+    n_converted_videos = n_videos - n_failed
     time_per_file = time_taken / n_converted_videos
     time_per_meg = time_taken / (mp4_size / 1000000)
     size_diff = new_format_size - mp4_size
-    percent_diff = size_dif / mp4_size * 100
+    percent_diff = size_diff / mp4_size * 100
 
     return final_report.format(n_files = n_files, 
-                            n_video = n_video, 
+                            n_videos = n_videos, 
                             n_failed = n_failed, 
                             n_html = n_html,
                             n_changed = n_changed,
-                            n_converted_videos = (n_video - n_failed),
+                            n_converted_videos = n_converted_videos,
                             time_taken = time_taken,
                             mp4_size = mp4_size,
                             new_format_size = new_format_size,
                             time_per_file = time_per_file,
-                            time_per_megabyte = time_per_megabyte,
+                            time_per_meg = time_per_meg,
                             size_diff = size_diff,
                             percent_diff = percent_diff
                             )
