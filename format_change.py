@@ -311,11 +311,24 @@ Completed with {n_files} files checked:
                 debug("      which we'll leave as is.",args)
 
 
+    additional_report = ''
     n_converted_videos = n_videos - n_failed
-    time_per_file = time_taken / n_converted_videos
-    time_per_meg = time_taken / (mp4_size / 1000000)
+    try:
+        time_per_file = time_taken / n_converted_videos
+    except ZeroDivisionError:
+        time_per_file = 0
+        additional_report += "\nNo video files were converted."
+    try:
+        time_per_meg = time_taken / (mp4_size / 1000000)
+    except ZeroDivisionError:
+        time_per_meg = 0
+        additional_report += "\n.. so time per meg is meaningless."
     size_diff = new_format_size - mp4_size
-    percent_diff = size_diff / mp4_size * 100
+    try:
+        percent_diff = size_diff / mp4_size * 100
+    except ZeroDivisionError:
+        percent_diff = 0
+        additional_report += "\n.. and so is percentage."
 
     return final_report.format(n_files = n_files, 
                             n_videos = n_videos, 
