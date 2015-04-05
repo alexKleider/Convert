@@ -31,22 +31,19 @@ Options:
                               creating a new one.
 
 This script traverses the IN_DIR directory (or current working
-directory if none is provided) looking for html and mp4 files.
+directory if none is provided) looking for non proprietary video files.
+Those found, are converted to the format specified by FORMAT.
+To date, this script supports conversion of only mp4 and flv videos to
+webm (the default) or ogv format.
+In order that links remain unbroken, html files are also scanned and
+where need be, the links are renamed as appropriate.
 If OUT_DIR is specified, another directory structure is created
-incorporating the changes, leaving the original unchanged.
+incorporating the changes, leaving the original unchanged.  If it
+already exists, its content is updated (i.e. work previously done is not
+repeated.)
 If --in_place is specified, original files are modified.
-The content of all html files are examined and any references to '.mp4'
-are changed to the suffix appropriate to the FORMAT specified.
-All mp4 files are converted into the FORMAT specified.
-The only two formats currently supported are webm and ogv.
-If not specified, FORMAT defaults to webm.
-
-format_change.py combines the functionality of both convert_mp4.py and
-scan4html.py into one script.  It supports preservation of the original
-directory, not provided in the other two scripts.
-
-Recently added functionality which provides converson times
-and comparison of file size before and after conversion.
+At completion, a report is presented outlining time taken and extra
+disk space required expressed in various ways.
 """
 
 import os
@@ -58,7 +55,7 @@ import subprocess
 from docopt import docopt
 import spot
 
-OLD_SUFFIX = '.mp4'
+PROPRIETARY_SUFFIXES = ('.mp4', '.flv',)
 ENCODING = "latin-1"
 
 def get_args():
@@ -82,7 +79,8 @@ def get_args():
             os.path.abspath(os.path.expanduser(
                                         args['--output'])))
     args['html_suffix'] = '.html'
-    args['old_suffix'] = OLD_SUFFIX
+    args['proprietary_suffixes'] = PROPRIETARY_SUFFIXES
+    args['current_proprietary_suffix'] = ''
     if args['--format'] == 'ogv':
         args['new_suffix'] = '.ogv'
         args['command'] =' '.join(("avconv -flags qscale",
@@ -128,6 +126,19 @@ def status(entry, args):
     with (open(args['--statusfile'], "w")) as f:
         f.write("{0}\n".format(entry))
 
+def is_target_video_file(file_name, args):
+    """Checks if <file_name> ends in one of the suffixes specified in
+    args['proprietary_suffixes'].  If so, returns True after setting
+    args['current_proprietary_suffix'].  Otherwise it returns False.
+    Clients of this function can decide if they want to reset
+    args['current_proprietary_suffix'] to the empty string.
+    It is suggested that they do.""" 
+    for suffix in args['proprietary_suffixes']:
+        if file_name.endswith(suffix):
+            args['current_proprietary_suffix'] = suffix
+            return True
+    return False
+
 def convert_video(source, destination, args):
     """Convert to alternate video format.
     
@@ -157,13 +168,19 @@ def convert_video(source, destination, args):
 def convert_text(text, old, new):
     """Text replacement.
 
-    All three parameters are strings. 
-    Any occurrence of the second parameter in the first
-    is replaced by the third.
+    First and third parameters are strings. 
+    The second (middle) parameter is an iterable of strings.
+    Any occurrence of any of the strings in the the second parameter
+    found in the first parameter is replaced by the third parameter.
     Returns altered text or None if no alterations were done.
     """
-    if text.find(old) >= 0:
-        return text.replace(old[1:], new[1:])
+    ret = 0
+    for target in old:
+        if text.find(target) >= 0:
+            text = text.replace(target[1:], new[1:])
+            ret += 1
+    if ret:
+        return text
 
 def modify_html(source, destination, args):
     """Modifies the text in .html files.
@@ -177,7 +194,7 @@ def modify_html(source, destination, args):
     with open(source, 'r', encoding=ENCODING) as source_file:
         file_content = source_file.read()
         content = convert_text(file_content, 
-                                args['old_suffix'],
+                                args['proprietary_suffixes'],
                                 args['new_suffix'],)
     if content:
         with open(destination, 'w', 
@@ -267,14 +284,15 @@ Completed with {n_files} files checked:
                     log("{}: {} -"
                         .format(str(datetime.datetime.now())[:19],
                                 file_name), args)
-            elif source.endswith(args['old_suffix']):
+
+            elif is_target_video_file(source, args):
                 debug("      which is a video file.", args)
                 n_videos += 1
                 dest_file = file_name.replace(
-                                    args['old_suffix'],
+                                    args['current_proprietary_suffix'],
                                     args['new_suffix'])
                 destination = destination.replace(
-                                    args['old_suffix'],
+                                    args['current_proprietary_suffix'],
                                     args['new_suffix'])
                 if os.path.isfile(destination):  # Already converted.
                     log("{}: {} $".\
@@ -283,6 +301,7 @@ Completed with {n_files} files checked:
                     continue  
                 begin_conversion = datetime.datetime.now()
                 return_code = convert_video(source, destination, args)
+                args['current_proprietary_suffix'] = ''
                 end_conversion = datetime.datetime.now()
                 log("{}: {} => {}"
                         .format(str(datetime.datetime.now())[:19],
