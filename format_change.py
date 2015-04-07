@@ -10,7 +10,7 @@ format_change.py
 Usage:
     format_change.py -h | --version
     format_change.py [options] -o OUT_DIR
-    format_change.py [options] --in_place
+    format_change.py [options] --in-place
 
 Options:
   -h --help        Print this docstring.
@@ -27,7 +27,7 @@ Options:
                                     files are found. [Default: ./]
   -o OUT_DIR --output=OUT_DIR    Destination directory which will be
                                 created if it doesn't already exist. 
-  --in_place    Make changes to the source directory rather than 
+  --in-place    Make changes to the source directory rather than 
                               creating a new one.
 
 This script traverses the IN_DIR directory (or current working
@@ -41,7 +41,7 @@ If OUT_DIR is specified, another directory structure is created
 incorporating the changes, leaving the original unchanged.  If it
 already exists, its content is updated (i.e. work previously done is not
 repeated.)
-If --in_place is specified, original files are modified.
+If --in-place is specified, original files are modified.
 At completion, a report is presented outlining time taken and extra
 disk space required expressed in various ways.
 """
@@ -53,8 +53,8 @@ import shutil
 import datetime
 import subprocess
 from docopt import docopt
-import spot
 
+VERSION = 'v0.1.0'
 PROPRIETARY_SUFFIXES = ('.mp4', '.flv',)
 ENCODING = "latin-1"
 
@@ -65,14 +65,14 @@ def get_args():
     and sets up other globals.
     Causes termination if invalid format is given.
     """
-    args = docopt(__doc__, version=spot.VERSION)
+    args = docopt(__doc__, version=VERSION)
     args['--input'] = (
         os.path.abspath(os.path.expanduser(
                                     args['--input'])))
     args['--logfile'] = (
         os.path.abspath(os.path.expanduser(
                                     args['--logfile'])))
-    if args['--in_place']:
+    if args['--in-place']:
         args['--output'] = args['--input']
     else:
         args['--output'] = (
@@ -80,15 +80,24 @@ def get_args():
                                         args['--output'])))
     args['html_suffix'] = '.html'
     args['proprietary_suffixes'] = PROPRIETARY_SUFFIXES
+    for suffix in args['proprietary_suffixes']:
+        args[suffix] = {}
+        args[suffix]['n_encountered'] = 0
+        args[suffix]['n_converted'] = 0
+        args[suffix]['old_size'] = 0
+        args[suffix]['new_size'] = 0
+        args[suffix]['time_delta'] = datetime.timedelta(0, 0, 0)
+    args['n_html'] = 0
+    args['n_changed'] = 0
     args['current_proprietary_suffix'] = ''
-    if args['--format'] == 'ogv':
-        args['new_suffix'] = '.ogv'
-        args['command'] =' '.join(("avconv -flags qscale",
-            "-global_quality 1 -i {} -acodec libvorbis {}"))
-    elif args['--format'] == 'webm':
+    if args['--format'] == 'webm':
         args['new_suffix'] = '.webm'
         args['command'] =' '.join(("avconv -flags qscale",
                             "-global_quality 1 -i {} -y {}"))
+    elif args['--format'] == 'ogv':
+        args['new_suffix'] = '.ogv'
+        args['command'] =' '.join(("avconv -flags qscale",
+            "-global_quality 1 -i {} -acodec libvorbis {}"))
     else:
         if args['--verbose']:
             print("'{}' is an unrecognized format. Terminating."
@@ -142,7 +151,8 @@ def is_target_video_file(file_name, args):
 def convert_video(source, destination, args):
     """Convert to alternate video format.
     
-    Format of source is assumed to be mp4.
+    Format of source is assumed to be one of the ones listed
+    in args['proprietary_suffixes'].
     Format of destination is determined by args['--format'].
     Return code 0 (success) or 1.
     Side effect: logs problems if they occur.
@@ -189,7 +199,8 @@ def modify_html(source, destination, args):
     to args['--format'] in destination.
     Returns True if modifications were necessary, False if not.
     If modifications are not necessary, still moves source to
-    destination.
+    destination unless its already there or args['--in-place'] is
+    set to True (efectively the same thing.)
     """
     with open(source, 'r', encoding=ENCODING) as source_file:
         file_content = source_file.read()
@@ -203,11 +214,57 @@ def modify_html(source, destination, args):
         shutil.copymode(source, destination, follow_symlinks=False)
         return True
     else:  # file doesn't require changes.
-        if args['--in_place'] or os.path.isfile(destination):
+        if args['--in-place'] or os.path.isfile(destination):
             return   # returns None vs True or False
         else:  # Unchanged file needs to be moved over.
             shutil.copy2(source, destination) 
             return False
+
+def get_report(args):
+    """Returns a report regarding data aquired during execution
+    and stored in args."""
+    ret = ("""
+Number of html files examined: {}, of which {} were modified. """
+                        .format(args['n_html'], args['n_changed']))
+    for proprietary_format in args['proprietary_suffixes']:
+        size_increase = (args[proprietary_format]['new_size']
+                        - args[proprietary_format]['old_size'])
+        if size_increase:
+            relative_size_increase = (size_increase / 
+                            args[proprietary_format]['old_size'])
+        else:
+            relative_size_increase = 0
+        if args[proprietary_format]['n_converted']:
+            average_time = (args[proprietary_format]['time_delta'] /
+                            args[proprietary_format]['n_converted'])
+        else:
+            average_time = 0
+        if args[proprietary_format]['old_size']:
+            time_per_meg_of_original_size = (
+                    args[proprietary_format]['time_delta'] /
+                    (args[proprietary_format]['old_size'] / 1000000))
+        else:
+            time_per_meg_of_original_size = 0
+#           additional_report += "\n.. so time per meg is meaningless."
+        ret = '\n'.join((ret, 
+        """{} files encountered: {}, of which {} were converted
+    taking a total time of {} 
+        Avg time/file: {}; time/meg of original format: {}.
+    Total file space- originals: {:,}, 
+                    conversions: {:,}
+    for an over all size increase of: {:,}, ({:.1%}.)"""
+    .format(proprietary_format,
+            args[proprietary_format]['n_encountered'],
+            args[proprietary_format]['n_converted'],
+            str(args[proprietary_format]['time_delta'])[:-7],
+            str(average_time)[:-7],
+            str(time_per_meg_of_original_size)[:-7],
+            args[proprietary_format]['old_size'],
+            args[proprietary_format]['new_size'],
+            size_increase,
+            relative_size_increase,
+            )))
+    return ret
         
 def traverse_and_change(args):
     """Convert all files found in args['--input']
@@ -227,25 +284,6 @@ def traverse_and_change(args):
     Depends on log function.
     Returns a final report on what's been done.
     """
-    final_report = ("""
-Completed with {n_files} files checked:
-    Attempted {n_videos} video conversions, {n_failed} failed.
-    {n_html} html files encountered, {n_changed} required changing.
-    Time to convert {n_converted_videos} videos: {time_taken}.
-    Total of sizes of all input video files: {mp4_size}
-                  of all output video files: {new_format_size}
-    for an average time per file: {time_per_file}
-     time per megabite of source: {time_per_meg}.
-    Extra disk space required: {size_diff}, {percent_diff}%.""")
-
-    n_files = 0     # $ destination already existed.
-    n_videos = 0     # + modified.
-    n_failed = 0    # - no need for modification.
-    time_taken = datetime.timedelta(0, 0, 0)
-    mp4_size = 0
-    new_format_size = 0
-    n_html = 0
-    n_changed = 0
 
     for root, _, files in os.walk(args['--input']):
         message = "Traversing {}".format(root)
@@ -262,32 +300,72 @@ Completed with {n_files} files checked:
             shutil.copymode(source_dir, dest_dir, follow_symlinks=False)
 #           shutil.copymode(source_dir, dest_dir)
         for file_name in files:
+# $ destination already existed.
+# + modified.
+# - no need for modification.
             source = os.path.abspath(os.path.join(root, file_name))
             destination = os.path.abspath(
                                 os.path.join(dest_dir, file_name))
             debug("    Checking {}".format(file_name), args)
-            n_files += 1
+# Deal with html files:
+# Algorithm:-----------------------------------------------------------
+#                     |   Modified             |   Not Modified        |
+# =====================================================================
+#      In Place       |  over write source +   |    do nothing -       |
+# ---------------------------------------------------------------------
+#   Not in place:                                                      |
+#      Exists in dest |     do nothing $       |    do nothing $       |
+# ----------------------------------------------------------------------
+#      Does not exist | write to destination + | copy to destination - |
+# ----------------------------------------------------------------------
             if source.endswith(args['html_suffix']):
                 debug("      which is an html file.", args)
-                n_html += 1
+                args['n_html'] += 1
                 html_modified = modify_html(source, destination, args)
-                if html_modified == None:  # source != dest & dest exists.
-                    log("{}: {} $"
-                        .format(str(datetime.datetime.now())[:19],
-                                file_name), args)
-                elif html_modified:
-                    log("{}: {} +"
-                        .format(str(datetime.datetime.now())[:19],
-                                file_name), args)
-                    n_changed += 1
-                else:
-                    log("{}: {} -"
-                        .format(str(datetime.datetime.now())[:19],
-                                file_name), args)
-
+# $ destination already existed.
+# + modified.
+# - no need for modification.
+                if html_modified:
+                    if args['--in-place']:
+                        # overwrite source
+                        log("{}: {} +"
+                            .format(str(datetime.datetime.now())[:19],
+                                    file_name), args)
+                        args['n_changed'] += 1
+                    else: # not in place
+                        if os.path.isfile(destination): # Already done.
+                            log("{}: {} $"
+                              .format(str(datetime.datetime.now())[:19],
+                                        file_name), args)
+                        else: # Not in Destination:
+                            args['n_changed'] += 1
+                            # write to destination already done
+                            # by the modify_html function.
+                            log("{}: {} +"
+                              .format(str(datetime.datetime.now())[:19],
+                                        file_name), args)
+                else:  # Not modified
+                    if args['--in-place']:
+                        log("{}: {} -"
+                            .format(str(datetime.datetime.now())[:19],
+                                    file_name), args)
+                    else:  # not in place
+                        if os.path.isfile(destination):  # exists in dest
+                            log("{}: {} $"
+                                .format(str(datetime.datetime.now())[:19],
+                                        file_name), args)
+                        else:  # Not in destination
+                            log("{}: {} -"
+                                .format(str(datetime.datetime.now())[:19],
+                                        file_name), args)
+                            # Source has already been copied to
+                            # destination by the modify_html function.
             elif is_target_video_file(source, args):
                 debug("      which is a video file.", args)
-                n_videos += 1
+                # args['current_proprietary_suffix'] is set
+                # by is_target_video_file() function.
+                args[args['current_proprietary_suffix']]\
+                                    ['n_encountered'] += 1
                 dest_file = file_name.replace(
                                     args['current_proprietary_suffix'],
                                     args['new_suffix'])
@@ -295,13 +373,12 @@ Completed with {n_files} files checked:
                                     args['current_proprietary_suffix'],
                                     args['new_suffix'])
                 if os.path.isfile(destination):  # Already converted.
-                    log("{}: {} $".\
-                                format(str(datetime.datetime.now())[:19],
+                    log("{}: {} $"
+                            .format(str(datetime.datetime.now())[:19],
                                                 dest_file), args)
                     continue  
                 begin_conversion = datetime.datetime.now()
                 return_code = convert_video(source, destination, args)
-                args['current_proprietary_suffix'] = ''
                 end_conversion = datetime.datetime.now()
                 log("{}: {} => {}"
                         .format(str(datetime.datetime.now())[:19],
@@ -316,11 +393,17 @@ Completed with {n_files} files checked:
                     n_failed += 1
                     continue
                 else:
-                    time_taken += end_conversion - begin_conversion
-                    mp4_size += os.stat(source).st_size
-                    new_format_size += os.stat(destination).st_size
+                    args[args['current_proprietary_suffix']]\
+                                        ['n_converted'] += 1
+                    args[args['current_proprietary_suffix']]\
+                        ['time_delta'] += (
+                                end_conversion - begin_conversion)
+                    args[args['current_proprietary_suffix']]\
+                        ['old_size'] += os.stat(source).st_size
+                    args[args['current_proprietary_suffix']]\
+                        ['new_size'] += os.stat(destination).st_size
 
-            elif not args['--in_place']: 
+            elif not args['--in-place']: 
                 if not (os.path.isfile(destination)  # [1]
                   or os.path.islink(destination)):
                     shutil.copyfile(source, 
@@ -328,41 +411,9 @@ Completed with {n_files} files checked:
                                     follow_symlinks=False)
             else:
                 debug("      which we'll leave as is.",args)
-
-
-    additional_report = ''
-    n_converted_videos = n_videos - n_failed
-    try:
-        time_per_file = time_taken / n_converted_videos
-    except ZeroDivisionError:
-        time_per_file = 0
-        additional_report += "\nNo video files were converted."
-    try:
-        time_per_meg = time_taken / (mp4_size / 1000000)
-    except ZeroDivisionError:
-        time_per_meg = 0
-        additional_report += "\n.. so time per meg is meaningless."
-    size_diff = new_format_size - mp4_size
-    try:
-        percent_diff = size_diff / mp4_size * 100
-    except ZeroDivisionError:
-        percent_diff = 0
-        additional_report += "\n.. and so is percentage."
-
-    return final_report.format(n_files = n_files, 
-                            n_videos = n_videos, 
-                            n_failed = n_failed, 
-                            n_html = n_html,
-                            n_changed = n_changed,
-                            n_converted_videos = n_converted_videos,
-                            time_taken = time_taken,
-                            mp4_size = mp4_size,
-                            new_format_size = new_format_size,
-                            time_per_file = time_per_file,
-                            time_per_meg = time_per_meg,
-                            size_diff = size_diff,
-                            percent_diff = percent_diff
-                            )
+    report = get_report(args)
+    log(report, args)
+    return report
 
 def main(args):
     if args['--verbose'] or args['--debug']:
