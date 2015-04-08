@@ -84,6 +84,8 @@ def get_args():
         args[suffix] = {}
         args[suffix]['n_encountered'] = 0
         args[suffix]['n_converted'] = 0
+        args[suffix]['n_failed'] = 0
+        args[suffix]['time_wasted'] = datetime.timedelta(0, 0, 0)
         args[suffix]['old_size'] = 0
         args[suffix]['new_size'] = 0
         args[suffix]['time_delta'] = datetime.timedelta(0, 0, 0)
@@ -93,11 +95,11 @@ def get_args():
     if args['--format'] == 'webm':
         args['new_suffix'] = '.webm'
         args['command'] =' '.join(("avconv -flags qscale",
-                            "-global_quality 1 -i {} -y {}"))
+                            "-global_quality 1 -i '{}' -y '{}'"))
     elif args['--format'] == 'ogv':
         args['new_suffix'] = '.ogv'
         args['command'] =' '.join(("avconv -flags qscale",
-            "-global_quality 1 -i {} -acodec libvorbis {}"))
+            "-global_quality 1 -i '{}' -acodec libvorbis '{}'"))
     else:
         if args['--verbose']:
             print("'{}' is an unrecognized format. Terminating."
@@ -166,13 +168,12 @@ def convert_video(source, destination, args):
         args)
     return_code = subprocess.call(command_line)
     if return_code:
-        message = ("{}: {} => return code >0."
-                    .format(datetime.datetime.now()[:24], source))
+        message = ("{:24}: {} => return code >0."
+                    .format(datetime.datetime.now(), source))
         log(message, args)
         report(message, args)
     else:
         shutil.copymode(source, destination, follow_symlinks=False)
-#       shutil.copymode(source, destination)
     return return_code
 
 def convert_text(text, old, new):
@@ -248,6 +249,7 @@ Number of html files examined: {}, of which {} were modified. """
 #           additional_report += "\n.. so time per meg is meaningless."
         ret = '\n'.join((ret, 
         """{} files encountered: {}, of which {} were converted
+                                     but {} failed.
     taking a total time of {} 
         Avg time/file: {}; time/meg of original format: {}.
     Total file space- originals: {:,}, 
@@ -256,6 +258,7 @@ Number of html files examined: {}, of which {} were modified. """
     .format(proprietary_format,
             args[proprietary_format]['n_encountered'],
             args[proprietary_format]['n_converted'],
+            args[proprietary_format]['n_failed'],
             str(args[proprietary_format]['time_delta'])[:-7],
             str(average_time)[:-7],
             str(time_per_meg_of_original_size)[:-7],
@@ -369,6 +372,7 @@ def traverse_and_change(args):
                 dest_file = file_name.replace(
                                     args['current_proprietary_suffix'],
                                     args['new_suffix'])
+                dest_if_fail = destination
                 destination = destination.replace(
                                     args['current_proprietary_suffix'],
                                     args['new_suffix'])
@@ -380,29 +384,36 @@ def traverse_and_change(args):
                 begin_conversion = datetime.datetime.now()
                 return_code = convert_video(source, destination, args)
                 end_conversion = datetime.datetime.now()
-                log("{}: {} => {}"
-                        .format(str(datetime.datetime.now())[:19],
-                                file_name,
-                                args['--format']),
-                    args)
+                conversion_time = end_conversion - begin_conversion
                 if return_code:
-                    message = ("!!!!!!!!!Return_code is {}."
-                                        .format(return_code))
+                    message = ("FAILED ({}) {}"
+                                .format(return_code, source))
                     print(message)
                     log(message, args)
-                    n_failed += 1
+                    args[args['current_proprietary_suffix']]\
+                        ['time_wasted'] += conversion_time
+                    args[args['current_proprietary_suffix']]\
+                                        ['n_failed'] += 1
+                    if not args['--in-place']:  # Copy unconverted file:
+                        if not os.path.isfile(dest_if_fail):
+                            shutil.copyfile(source, 
+                                            dest_if_fail,
+                                            follow_symlinks=False)
                     continue
                 else:
+                    log("{}: {} => {}"
+                            .format(str(datetime.datetime.now())[:19],
+                                    file_name,
+                                    args['--format']),
+                        args)
                     args[args['current_proprietary_suffix']]\
                                         ['n_converted'] += 1
                     args[args['current_proprietary_suffix']]\
-                        ['time_delta'] += (
-                                end_conversion - begin_conversion)
+                        ['time_delta'] += conversion_time
                     args[args['current_proprietary_suffix']]\
                         ['old_size'] += os.stat(source).st_size
                     args[args['current_proprietary_suffix']]\
                         ['new_size'] += os.stat(destination).st_size
-
             elif not args['--in-place']: 
                 if not (os.path.isfile(destination)  # [1]
                   or os.path.islink(destination)):
@@ -411,9 +422,9 @@ def traverse_and_change(args):
                                     follow_symlinks=False)
             else:
                 debug("      which we'll leave as is.",args)
-    report = get_report(args)
-    log(report, args)
-    return report
+    ret = get_report(args)
+    log(ret, args)
+    return ret
 
 def main(args):
     if args['--verbose'] or args['--debug']:
@@ -445,6 +456,12 @@ def main(args):
     summary_report = traverse_and_change(args)
     if args['--verbose'] or args['--debug']:
         print(summary_report)
+    message = ("""
+####   Ending current instance of format_change.py {}"""\
+                            .format(str(datetime.datetime.now())[:19]))
+    log(message, args)
+    if args['--verbose'] or args['--debug']:
+        print(message)
 
 
 if __name__ == "__main__":
