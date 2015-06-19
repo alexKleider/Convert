@@ -173,6 +173,8 @@ def convert_video(source, destination, args):
         log(message, args)
         report(message, args)
     else:
+        # The subprocess.call has already moved the data,
+        # here we just want to move the metadata.
         shutil.copymode(source, destination, follow_symlinks=False)
     return return_code
 
